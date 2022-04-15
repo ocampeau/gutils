@@ -15,7 +15,6 @@ func NewHttpTransportCircuitBreaker(rt http.RoundTripper, opts ... Options) *Htt
     next: rt,
     cb:   NewCircuitBreaker(opts...),
   }
-
   return &tr
 }
 
