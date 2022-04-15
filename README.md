@@ -13,11 +13,11 @@ tools that are as efficient as possible (cpu, memory, latency, etc.).
 For now, it only contains a circuit breaker, but I plan to add more utilities when I have the time.
 
 I build these tools with a primary focus on two objectives:
-* Making the most efficient tools possible (cpe-efficient, memory efficient, fast, etc.)
+* Making the most efficient tools possible (cpu efficient, memory efficient, fast, etc.)
 * Making the tools as easy to use as possible
 
 I try to make tools with sensible defaults, so that its easy to get started out of the box
-without configuration. I also try to offer as much configuration as possible, and to make
+without configuration. I also try to offer as much configurations as possible, and to make
 configuration easy to manage.
 
 I also try to benchmark everything, and aim for the fastest solution possible with less
