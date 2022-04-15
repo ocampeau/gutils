@@ -36,9 +36,9 @@ This package provides only one strategy for now:
 * `halfOpenTimer` strategy.
 
 #### HalfOpenTimer
-The halfOpenTimer strategy is a simple timer, that will retry request at periodic intervals
+The halfOpenTimer strategy is a simple timer that will retry requests at periodic intervals
 (the timer interval). Once a success threshold is met, the circuit will be closed. If a request returns 
-an error, the circuit goes back to the closed state.
+an error, the circuit goes back to the closed state. It is the default strategy.
 
 
 #### Custom strategies
