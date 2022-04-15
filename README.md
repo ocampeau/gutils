@@ -32,7 +32,8 @@ that involves making request to another component of your application.
 
 ### Strategies
 Strategies are a way to customize the logic of your circuit breaker when it is in the half-open state.
-This package provides only once strategy for now: `halfOpenTimer` strategy.
+This package provides only one strategy for now: 
+* `halfOpenTimer` strategy.
 
 #### HalfOpenTimer
 The halfOpenTimer strategy is a simple timer, that will retry request at periodic intervals
