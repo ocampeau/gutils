@@ -30,6 +30,19 @@ Feel free to use, provide feedback and contribute if you want to.
 The `circuitbreaker` package contains a circuit breaker that can be used for almost anything
 that involves making request to another component of your application.
 
+### Strategies
+Strategies are a way to customize the logic of your circuit breaker when it is in the half-open state.
+This package provides only once strategy for now: `halfOpenTimer` strategy.
+
+#### HalfOpenTimer
+The halfOpenTimer strategy is a simple timer, that will retry request at periodic intervals
+(the timer interval). Once a success threshold is met, the circuit will be closed. If a request returns 
+an error, the circuit goes back to the closed state.
+
+
+#### Custom strategies
+It is possible to provide your own strategy by implementing the `Strategy` interface.
+
 ### Usage
 #### Custom usage
 You can use the circuit breaker for any operations by wrapping your operation
