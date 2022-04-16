@@ -2,7 +2,7 @@ package circuitbreaker
 
 import (
   "errors"
-  "gutils/circuitbreaker/strategy"
+  "github.com/ocampeau/gutils/circuitbreaker/strategy"
   "sync/atomic"
   "time"
 )
