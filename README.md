@@ -1,4 +1,7 @@
-
+# THIS PROJECT IS STILL UNDER DEVELOPMENT
+It is in a usable state,  but the API might change from time to time. If you want
+to use this package, please use  a specific commit as your version to make sure
+any changes down the road does not break your application.
 
 
 # gutils
