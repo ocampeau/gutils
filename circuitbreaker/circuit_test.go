@@ -32,11 +32,11 @@ func TestCircuitShouldOpenAfterNConsecutiveFailuresConcurrent(t *testing.T) {
     }()
 
     op := func() error {return ErrCircuitInternal}
-    cb := NewCircuitBreaker(WithTimerStrategy(1 * time.Second, 5))
+    cb := NewCircuitBreaker("test", WithTimerStrategy(1 * time.Second, 5))
     cb.consecutiveFailuresThreshold = failureThreshold
 
     var cf, stateChangeTime uint32 = 0, 0
-    cb.openHook = func() {
+    cb.openHooks[0] = func() {
       cf = cb.consecutiveFailures
       atomic.AddUint32(&stateChangeTime, 1)
     }
@@ -81,7 +81,7 @@ func TestCircuitShouldHalfOpenOnceTimerExpire(t *testing.T) {
 
   for _, testDuration := range durations{
     t.Run(fmt.Sprintf("with duration %s", testDuration.String()), func(t *testing.T){
-      cb := NewCircuitBreaker(WithOpenDuration(testDuration))
+      cb := NewCircuitBreaker("test", WithOpenDuration(testDuration))
       cb.state = Closed
       cb.openCircuit(Closed)
 
@@ -101,7 +101,7 @@ func TestCircuitShouldOpenWhenHalfOpenReturnsTrue(t *testing.T) {
 
     s.EXPECT().Process(gomock.Any()).Times(1).Return(strategy.ErrHalfOpen, true, false)
     s.EXPECT().Reset(gomock.Any()).AnyTimes()
-    cb := NewCircuitBreaker(WithCustomStrategy(s))
+    cb := NewCircuitBreaker("test", WithCustomStrategy(s))
     cb.state = HalfOpen
     err := cb.doHalfOpen(func()error{return ErrCircuitInternal})
     assert.Equal(t, strategy.ErrHalfOpen, err)
@@ -114,7 +114,7 @@ func TestCircuitShouldCloseWhenHalfOpenReturnsTrue(t *testing.T) {
 
   s.EXPECT().Process(gomock.Any()).Times(1).Return(nil, false, true)
 
-  cb := NewCircuitBreaker(WithCustomStrategy(s))
+  cb := NewCircuitBreaker("test", WithCustomStrategy(s))
   cb.state = HalfOpen
   err := cb.doHalfOpen(func()error{return ErrCircuitInternal})
   assert.Equal(t, nil, err)
@@ -127,7 +127,7 @@ func TestCircuitShouldReturnErrWhenHalfOpenReturnsErr(t *testing.T) {
 
   s.EXPECT().Process(gomock.Any()).Times(1).Return(ErrCircuitInternal, false, false)
 
-  cb := NewCircuitBreaker(WithCustomStrategy(s))
+  cb := NewCircuitBreaker("test", WithCustomStrategy(s))
   cb.state = HalfOpen
   err := cb.doHalfOpen(func()error{return ErrCircuitInternal})
   assert.NotNil(t, err)
@@ -157,15 +157,15 @@ func TestCircuitE2E(t *testing.T){
     return nil
   }
 
-  cb := NewCircuitBreaker(WithTimerStrategy(50 * time.Millisecond, 5))
+  cb := NewCircuitBreaker("test", WithTimerStrategy(50 * time.Millisecond, 5))
   cb.openDuration = 100 * time.Millisecond
-  cb.openHook = func(){
+  cb.openHooks[0] = func(){
     numTimeToOpen++
   }
-  cb.closeHook = func(){
+  cb.closeHooks[0] = func(){
     numTimeToClose++
   }
-  cb.halfOpenHook = func(){
+  cb.halfOpenHooks[0] = func(){
     numTimeToHalfOpen++
   }
 
@@ -182,7 +182,7 @@ func TestCircuitE2E(t *testing.T){
 }
 
 func BenchmarkDoOpen(b *testing.B) {
-  cb := NewCircuitBreaker()
+  cb := NewCircuitBreaker("test")
   cb.state = Open
 
   op := func() error {return nil}
@@ -213,7 +213,7 @@ func BenchmarkDoClose(b *testing.B) {
 
   for _, bc := range benchCases{
     b.Run(bc.description, func(b *testing.B){
-      cb := NewCircuitBreaker()
+      cb := NewCircuitBreaker("test")
       cb.state = Closed
       cb.consecutiveFailuresThreshold = 0
 
@@ -231,7 +231,7 @@ func BenchmarkDoClose(b *testing.B) {
 }
 
 func BenchmarkDoHalfOpen(b *testing.B) {
-  cb := NewCircuitBreaker()
+  cb := NewCircuitBreaker("test")
   cb.state = HalfOpen
 
   op := func() error {return ErrCircuitInternal}
@@ -244,7 +244,7 @@ func BenchmarkDoHalfOpen(b *testing.B) {
 }
 
 func BenchmarkOpenCircuit(b *testing.B) {
-  cb := NewCircuitBreaker()
+  cb := NewCircuitBreaker("test")
   for i := 0; i < b.N; i++{
     cb.state = Closed
     cb.openCircuit(Closed)

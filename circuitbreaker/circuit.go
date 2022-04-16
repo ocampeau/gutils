@@ -29,27 +29,29 @@ const (
 )
 
 type CircuitBreaker struct {
+  name string
   openDuration                 time.Duration
   halfOpenStrategy             strategy.Strategy
   consecutiveFailures          uint32
   consecutiveFailuresThreshold uint32
   state                        uint32
-  openHook                     OnStateChangeHook
-  halfOpenHook                 OnStateChangeHook
-  closeHook                    OnStateChangeHook
+  openHooks                     []OnStateChangeHook
+  halfOpenHooks                 []OnStateChangeHook
+  closeHooks                    []OnStateChangeHook
 }
 
-func NewCircuitBreaker(opts ...Options) *CircuitBreaker {
+func NewCircuitBreaker(name string, opts ...Options) *CircuitBreaker {
   c := &CircuitBreaker{
+    name: name,
     openDuration:                 DefaultOpenTimerDuration,
     consecutiveFailuresThreshold: 5,
     halfOpenStrategy: strategy.NewTimerStrategy(
       DefaultHalfOpenTimerDuration,
       DefaultHalfOpenConsecutiveSuccess),
     state:        Closed,
-    openHook:     noopHook,
-    halfOpenHook: noopHook,
-    closeHook:    noopHook,
+    openHooks:     []OnStateChangeHook{},
+    halfOpenHooks: []OnStateChangeHook{},
+    closeHooks:    []OnStateChangeHook{},
   }
 
   for _, apply := range opts {
@@ -105,18 +107,18 @@ func (c *CircuitBreaker) openCircuit(from uint32) {
       c.halfOpenStrategy.Reset(0)
       c.halfOpenCircuit(Open)
     }()
-    c.openHook()
+    execHooks(c.openHooks)
   }
 }
 
 func (c *CircuitBreaker) halfOpenCircuit(from uint32) {
   if atomic.CompareAndSwapUint32(&c.state, from, HalfOpen) {
-    c.halfOpenHook()
+    execHooks(c.halfOpenHooks)
   }
 }
 func (c *CircuitBreaker) closeCircuit(from uint32) {
   if atomic.CompareAndSwapUint32(&c.state, from, Closed) {
-    c.closeHook()
+    execHooks(c.closeHooks)
   }
 }
 
@@ -128,6 +130,27 @@ func (c *CircuitBreaker) CurrentState() string {
     return "close"
   }
   return "halfopen"
+}
+
+func (c *CircuitBreaker) RegisterOnOpenHooks(h OnStateChangeHook) {
+  c.openHooks = append(c.openHooks, h)
+}
+
+func (c *CircuitBreaker) RegisterOnCloseHooks(h OnStateChangeHook) {
+  c.closeHooks = append(c.closeHooks, h)
+}
+
+func (c *CircuitBreaker) RegisterOnHalfOpenHooks(h OnStateChangeHook) {
+  c.halfOpenHooks = append(c.halfOpenHooks, h)
+}
+
+func execHooks(hooks []OnStateChangeHook){
+  if hooks == nil{
+    return
+  }
+  for _, h := range hooks{
+    h()
+  }
 }
 
 func WithFailuresThreshold(threshold uint32) func(breaker *CircuitBreaker) {
@@ -154,3 +177,4 @@ func WithCustomStrategy(s strategy.Strategy) func(breaker *CircuitBreaker) {
     breaker.halfOpenStrategy = s
   }
 }
+

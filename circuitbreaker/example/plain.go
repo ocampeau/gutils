@@ -7,7 +7,7 @@ import (
 )
 
 func createCircuitBreaker(){
-  cb := circuitbreaker.NewCircuitBreaker(
+  cb := circuitbreaker.NewCircuitBreaker("myCircuitBreaker",
     circuitbreaker.WithTimerStrategy(1 * time.Second, 3),
     circuitbreaker.WithOpenDuration(3 * time.Second),
     circuitbreaker.WithFailuresThreshold(5))

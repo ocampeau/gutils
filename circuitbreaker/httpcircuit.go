@@ -13,7 +13,7 @@ type HttpTransport struct {
 func NewHttpTransportCircuitBreaker(rt http.RoundTripper, opts ... Options) *HttpTransport {
   tr := HttpTransport{
     next: rt,
-    cb:   NewCircuitBreaker(opts...),
+    cb:   NewCircuitBreaker("test", opts...),
   }
   return &tr
 }
