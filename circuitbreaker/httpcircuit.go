@@ -6,14 +6,14 @@ import (
 
 type HttpTransport struct {
   next http.RoundTripper
-  cb   *CircuitBreaker
+  Circuit   *CircuitBreaker
 }
 
 
-func NewHttpTransportCircuitBreaker(rt http.RoundTripper, opts ... Options) *HttpTransport {
+func NewHttpTransportCircuitBreaker(name string, rt http.RoundTripper, opts ... Options) *HttpTransport {
   tr := HttpTransport{
     next: rt,
-    cb:   NewCircuitBreaker("test", opts...),
+    Circuit:   NewCircuitBreaker(name, opts...),
   }
   return &tr
 }
@@ -23,6 +23,6 @@ func (t *HttpTransport) RoundTrip(req *http.Request) (res *http.Response, err er
     res, err = t.next.RoundTrip(req)
     return err
   }
-  err = t.cb.Do(op)
+  err = t.Circuit.Do(op)
   return
 }
