@@ -40,7 +40,8 @@ func NewPromCollector(cb *CircuitBreaker) prometheus.Collector {
   cb.RegisterOnCloseHooks(col.circuitBreakerClose)
   cb.RegisterOnOpenHooks(col.circuitBreakerOpen)
 
-  return &PromCollector{cb: cb}
+  col.cb = cb
+  return col
 }
 
 func (col *PromCollector) circuitBreakerOpen() {
