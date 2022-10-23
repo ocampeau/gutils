@@ -5,15 +5,14 @@ import (
 )
 
 type HttpTransport struct {
-  next http.RoundTripper
-  Circuit   *CircuitBreaker
+  next    http.RoundTripper
+  Circuit *CircuitBreaker
 }
 
-
-func NewHttpTransportCircuitBreaker(name string, rt http.RoundTripper, opts ... Options) *HttpTransport {
+func NewHttpTransportCircuitBreaker(name string, rt http.RoundTripper, opts ...Options) *HttpTransport {
   tr := HttpTransport{
-    next: rt,
-    Circuit:   NewCircuitBreaker(name, opts...),
+    next:    rt,
+    Circuit: NewCircuitBreaker(name, opts...),
   }
   return &tr
 }

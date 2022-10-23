@@ -2,9 +2,10 @@ package circuitbreaker
 
 import (
   "errors"
-  "github.com/ocampeau/gutils/circuitbreaker/strategy"
   "sync/atomic"
   "time"
+
+  "github.com/ocampeau/gutils/circuitbreaker/strategy"
 )
 
 type OnStateChangeHook = func()
@@ -14,8 +15,6 @@ type Options func(breaker *CircuitBreaker)
 var (
   ErrCircuitOpen     = errors.New("http circuit breaker is open")
   ErrCircuitInternal = errors.New("internal error with circuit breaker")
-
-  noopHook = func() {}
 )
 
 const (
@@ -29,26 +28,26 @@ const (
 )
 
 type CircuitBreaker struct {
-  name string
+  name                         string
   openDuration                 time.Duration
   halfOpenStrategy             strategy.Strategy
   consecutiveFailures          uint32
   consecutiveFailuresThreshold uint32
   state                        uint32
-  openHooks                     []OnStateChangeHook
-  halfOpenHooks                 []OnStateChangeHook
-  closeHooks                    []OnStateChangeHook
+  openHooks                    []OnStateChangeHook
+  halfOpenHooks                []OnStateChangeHook
+  closeHooks                   []OnStateChangeHook
 }
 
 func NewCircuitBreaker(name string, opts ...Options) *CircuitBreaker {
   c := &CircuitBreaker{
-    name: name,
+    name:                         name,
     openDuration:                 DefaultOpenTimerDuration,
     consecutiveFailuresThreshold: 5,
     halfOpenStrategy: strategy.NewTimerStrategy(
       DefaultHalfOpenTimerDuration,
       DefaultHalfOpenConsecutiveSuccess),
-    state:        Closed,
+    state:         Closed,
     openHooks:     []OnStateChangeHook{},
     halfOpenHooks: []OnStateChangeHook{},
     closeHooks:    []OnStateChangeHook{},
@@ -144,11 +143,11 @@ func (c *CircuitBreaker) RegisterOnHalfOpenHooks(h OnStateChangeHook) {
   c.halfOpenHooks = append(c.halfOpenHooks, h)
 }
 
-func execHooks(hooks []OnStateChangeHook){
-  if hooks == nil{
+func execHooks(hooks []OnStateChangeHook) {
+  if hooks == nil {
     return
   }
-  for _, h := range hooks{
+  for _, h := range hooks {
     h()
   }
 }
@@ -177,4 +176,3 @@ func WithCustomStrategy(s strategy.Strategy) func(breaker *CircuitBreaker) {
     breaker.halfOpenStrategy = s
   }
 }
-

@@ -1,8 +1,9 @@
 package circuitbreaker
 
 import (
-  "github.com/prometheus/client_golang/prometheus"
   "sync/atomic"
+
+  "github.com/prometheus/client_golang/prometheus"
 )
 
 const (
@@ -36,7 +37,7 @@ func NewPromCollector(cb *CircuitBreaker) prometheus.Collector {
       nil, prometheus.Labels{LabelsCircuitBreakerName: cb.name}),
   }
 
-  cb.RegisterOnHalfOpenHooks(col.circuitBreakerOpen)
+  cb.RegisterOnHalfOpenHooks(col.circuitBreakerHalfOpen)
   cb.RegisterOnCloseHooks(col.circuitBreakerClose)
   cb.RegisterOnOpenHooks(col.circuitBreakerOpen)
 
