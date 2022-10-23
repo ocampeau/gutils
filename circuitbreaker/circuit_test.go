@@ -4,15 +4,16 @@ import (
   "context"
   "errors"
   "fmt"
-  "github.com/golang/mock/gomock"
-  "github.com/ocampeau/gutils/circuitbreaker/strategy"
-  "github.com/ocampeau/gutils/circuitbreaker/strategy/mocks"
-  "github.com/stretchr/testify/assert"
   "runtime"
   "sync"
   "sync/atomic"
   "testing"
   "time"
+
+  "github.com/golang/mock/gomock"
+  "github.com/ocampeau/gutils/circuitbreaker/strategy"
+  "github.com/ocampeau/gutils/circuitbreaker/strategy/mocks"
+  "github.com/stretchr/testify/assert"
 )
 
 func TestCircuitShouldOpenAfterNConsecutiveFailuresConcurrent(t *testing.T) {
@@ -31,15 +32,15 @@ func TestCircuitShouldOpenAfterNConsecutiveFailuresConcurrent(t *testing.T) {
       cancel()
     }()
 
-    op := func() error {return ErrCircuitInternal}
-    cb := NewCircuitBreaker("test", WithTimerStrategy(1 * time.Second, 5))
+    op := func() error { return ErrCircuitInternal }
+    cb := NewCircuitBreaker("test", WithTimerStrategy(1*time.Second, 5))
     cb.consecutiveFailuresThreshold = failureThreshold
 
     var cf, stateChangeTime uint32 = 0, 0
-    cb.openHooks[0] = func() {
+    cb.RegisterOnOpenHooks(func() {
       cf = cb.consecutiveFailures
       atomic.AddUint32(&stateChangeTime, 1)
-    }
+    })
 
     wg := sync.WaitGroup{}
     var numReq uint32 = 0
@@ -62,7 +63,7 @@ func TestCircuitShouldOpenAfterNConsecutiveFailuresConcurrent(t *testing.T) {
     // and at most equal to `consecutiveFailuresThreshold` + `runtime.NumCPU` to allow for the
     // other concurrent in-flight requests to finish
     assert.GreaterOrEqual(t, cf, failureThreshold)
-    assert.LessOrEqual(t, cf, failureThreshold + uint32(runtime.NumCPU()))
+    assert.LessOrEqual(t, cf, failureThreshold+uint32(runtime.NumCPU()))
 
     // assert the openHook is only called once
     assert.Equal(t, uint32(1), stateChangeTime)
@@ -79,8 +80,8 @@ func TestCircuitShouldHalfOpenOnceTimerExpire(t *testing.T) {
     1 * time.Second,
   }
 
-  for _, testDuration := range durations{
-    t.Run(fmt.Sprintf("with duration %s", testDuration.String()), func(t *testing.T){
+  for _, testDuration := range durations {
+    t.Run(fmt.Sprintf("with duration %s", testDuration.String()), func(t *testing.T) {
       cb := NewCircuitBreaker("test", WithOpenDuration(testDuration))
       cb.state = Closed
       cb.openCircuit(Closed)
@@ -88,7 +89,7 @@ func TestCircuitShouldHalfOpenOnceTimerExpire(t *testing.T) {
       // we add 5 millisecond to the timer to allow time for the synchronization of the state
       // between the goroutines. That is to say that the state transition from open to half-open
       // is precise at 5 milliseconds
-      <- time.After(testDuration + (10 * time.Millisecond))
+      <-time.After(testDuration + (10 * time.Millisecond))
       assert.Equalf(t, HalfOpen, int(cb.state), "expected half-open but got %s", cb.CurrentState())
     })
   }
@@ -96,16 +97,16 @@ func TestCircuitShouldHalfOpenOnceTimerExpire(t *testing.T) {
 }
 
 func TestCircuitShouldOpenWhenHalfOpenReturnsTrue(t *testing.T) {
-    ctrl := gomock.NewController(t)
-    s := mocks.NewMockStrategy(ctrl)
+  ctrl := gomock.NewController(t)
+  s := mocks.NewMockStrategy(ctrl)
 
-    s.EXPECT().Process(gomock.Any()).Times(1).Return(strategy.ErrHalfOpen, true, false)
-    s.EXPECT().Reset(gomock.Any()).AnyTimes()
-    cb := NewCircuitBreaker("test", WithCustomStrategy(s))
-    cb.state = HalfOpen
-    err := cb.doHalfOpen(func()error{return ErrCircuitInternal})
-    assert.Equal(t, strategy.ErrHalfOpen, err)
-    assert.Equal(t, Open, int(cb.state))
+  s.EXPECT().Process(gomock.Any()).Times(1).Return(strategy.ErrHalfOpen, true, false)
+  s.EXPECT().Reset(gomock.Any()).AnyTimes()
+  cb := NewCircuitBreaker("test", WithCustomStrategy(s))
+  cb.state = HalfOpen
+  err := cb.doHalfOpen(func() error { return ErrCircuitInternal })
+  assert.Equal(t, strategy.ErrHalfOpen, err)
+  assert.Equal(t, Open, int(cb.state))
 }
 
 func TestCircuitShouldCloseWhenHalfOpenReturnsTrue(t *testing.T) {
@@ -116,7 +117,7 @@ func TestCircuitShouldCloseWhenHalfOpenReturnsTrue(t *testing.T) {
 
   cb := NewCircuitBreaker("test", WithCustomStrategy(s))
   cb.state = HalfOpen
-  err := cb.doHalfOpen(func()error{return ErrCircuitInternal})
+  err := cb.doHalfOpen(func() error { return ErrCircuitInternal })
   assert.Equal(t, nil, err)
   assert.Equal(t, Closed, int(cb.state))
 }
@@ -129,12 +130,12 @@ func TestCircuitShouldReturnErrWhenHalfOpenReturnsErr(t *testing.T) {
 
   cb := NewCircuitBreaker("test", WithCustomStrategy(s))
   cb.state = HalfOpen
-  err := cb.doHalfOpen(func()error{return ErrCircuitInternal})
+  err := cb.doHalfOpen(func() error { return ErrCircuitInternal })
   assert.NotNil(t, err)
   assert.Equal(t, HalfOpen, int(cb.state))
 }
 
-func TestCircuitE2E(t *testing.T){
+func TestCircuitE2E(t *testing.T) {
   start := time.Now()
 
   numTimeToOpen := 0
@@ -144,12 +145,12 @@ func TestCircuitE2E(t *testing.T){
   op := func() error {
     now := time.Now().UnixMicro()
     // return no error for the first 2 seconds
-    if now <= start.Add(2 * time.Second).UnixMicro(){
+    if now <= start.Add(2*time.Second).UnixMicro() {
       return nil
     }
 
     // return only errors for the next 2 seconds
-    if now >= start.Add(2 * time.Second).UnixMicro() && now < start.Add(4 * time.Second).UnixMicro(){
+    if now >= start.Add(2*time.Second).UnixMicro() && now < start.Add(4*time.Second).UnixMicro() {
       return errors.New("operation error")
     }
 
@@ -157,21 +158,21 @@ func TestCircuitE2E(t *testing.T){
     return nil
   }
 
-  cb := NewCircuitBreaker("test", WithTimerStrategy(50 * time.Millisecond, 5))
+  cb := NewCircuitBreaker("test", WithTimerStrategy(50*time.Millisecond, 5))
   cb.openDuration = 100 * time.Millisecond
-  cb.openHooks[0] = func(){
+  cb.RegisterOnOpenHooks(func() {
     numTimeToOpen++
-  }
-  cb.closeHooks[0] = func(){
+  })
+  cb.RegisterOnCloseHooks(func() {
     numTimeToClose++
-  }
-  cb.halfOpenHooks[0] = func(){
+  })
+  cb.RegisterOnHalfOpenHooks(func() {
     numTimeToHalfOpen++
-  }
+  })
 
   endTestTime := time.Now().Add(5 * time.Second)
-  for{
-    if time.Now().UnixMicro() > endTestTime.UnixMicro(){
+  for {
+    if time.Now().UnixMicro() > endTestTime.UnixMicro() {
       break
     }
     cb.Do(op)
@@ -185,7 +186,7 @@ func BenchmarkDoOpen(b *testing.B) {
   cb := NewCircuitBreaker("test")
   cb.state = Open
 
-  op := func() error {return nil}
+  op := func() error { return nil }
 
   b.ReportAllocs()
   b.RunParallel(func(pb *testing.PB) {
@@ -197,27 +198,27 @@ func BenchmarkDoOpen(b *testing.B) {
 }
 
 func BenchmarkDoClose(b *testing.B) {
-  benchCases := []struct{
+  benchCases := []struct {
     description string
-    opErr error
+    opErr       error
   }{
     {
       description: "operation always return nil",
-      opErr: nil,
+      opErr:       nil,
     },
     {
       description: "operation always return error",
-      opErr: ErrCircuitInternal,
+      opErr:       ErrCircuitInternal,
     },
   }
 
-  for _, bc := range benchCases{
-    b.Run(bc.description, func(b *testing.B){
+  for _, bc := range benchCases {
+    b.Run(bc.description, func(b *testing.B) {
       cb := NewCircuitBreaker("test")
       cb.state = Closed
       cb.consecutiveFailuresThreshold = 0
 
-      op := func() error {return bc.opErr}
+      op := func() error { return bc.opErr }
 
       b.ReportAllocs()
       b.RunParallel(func(pb *testing.PB) {
@@ -234,7 +235,7 @@ func BenchmarkDoHalfOpen(b *testing.B) {
   cb := NewCircuitBreaker("test")
   cb.state = HalfOpen
 
-  op := func() error {return ErrCircuitInternal}
+  op := func() error { return ErrCircuitInternal }
   b.ReportAllocs()
   b.RunParallel(func(pb *testing.PB) {
     for pb.Next() {
@@ -245,10 +246,8 @@ func BenchmarkDoHalfOpen(b *testing.B) {
 
 func BenchmarkOpenCircuit(b *testing.B) {
   cb := NewCircuitBreaker("test")
-  for i := 0; i < b.N; i++{
+  for i := 0; i < b.N; i++ {
     cb.state = Closed
     cb.openCircuit(Closed)
   }
 }
-
-
